@@ -2,7 +2,6 @@
 
 extern crate test;
 
-use arrayref::array_ref;
 use arrayvec::ArrayVec;
 use rand::prelude::*;
 use test::Bencher;
@@ -29,7 +28,7 @@ impl RandomInput {
         b.bytes += len as u64;
         let page_size: usize = page_size::get();
         let mut buf = vec![0u8; len + page_size];
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         rng.fill_bytes(&mut buf);
         let mut offsets: Vec<usize> = (0..page_size).collect();
         offsets.shuffle(&mut rng);
@@ -57,7 +56,7 @@ type CompressInPlaceFn =
 fn bench_single_compression_fn(b: &mut Bencher, f: CompressInPlaceFn) {
     let mut state = [1u32; 8];
     let mut r = RandomInput::new(b, 64);
-    let input = array_ref!(r.get(), 0, 64);
+    let input: &[u8; 64] = (&r.get()[..64]).try_into().unwrap();
     b.iter(|| unsafe { f(state.as_mut_ptr(), input.as_ptr(), 64, 0, 0) });
 }
 
@@ -126,7 +125,7 @@ fn bench_many_chunks_fn(b: &mut Bencher, f: HashManyFn, degree: usize) {
         let input_arrays: ArrayVec<&[u8; CHUNK_LEN], MAX_SIMD_DEGREE> = inputs
             .iter_mut()
             .take(degree)
-            .map(|i| array_ref!(i.get(), 0, CHUNK_LEN))
+            .map(|i| (&i.get()[..CHUNK_LEN]).try_into().unwrap())
             .collect();
         let mut out = [0; MAX_SIMD_DEGREE * OUT_LEN];
         unsafe {
@@ -218,7 +217,7 @@ fn bench_many_parents_fn(b: &mut Bencher, f: HashManyFn, degree: usize) {
         let input_arrays: ArrayVec<&[u8; BLOCK_LEN], MAX_SIMD_DEGREE> = inputs
             .iter_mut()
             .take(degree)
-            .map(|i| array_ref!(i.get(), 0, BLOCK_LEN))
+            .map(|i| (&i.get()[..BLOCK_LEN]).try_into().unwrap())
             .collect();
         let mut out = [0; MAX_SIMD_DEGREE * OUT_LEN];
         unsafe {
@@ -369,6 +368,90 @@ fn bench_incremental_0512_kib(b: &mut Bencher) {
 #[bench]
 fn bench_incremental_1024_kib(b: &mut Bencher) {
     bench_incremental(b, 1024 * KIB);
+}
+
+#[cfg(feature = "tbb")]
+fn bench_tbb(b: &mut Bencher, len: usize) {
+    let mut input = RandomInput::new(b, len);
+    b.iter(|| {
+        let mut hasher = blake3_c_rust_bindings::Hasher::new();
+        hasher.update_tbb(input.get());
+        let mut out = [0; 32];
+        hasher.finalize(&mut out);
+        out
+    });
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0001_block(b: &mut Bencher) {
+    bench_tbb(b, BLOCK_LEN);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0001_kib(b: &mut Bencher) {
+    bench_tbb(b, 1 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0002_kib(b: &mut Bencher) {
+    bench_tbb(b, 2 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0004_kib(b: &mut Bencher) {
+    bench_tbb(b, 4 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0008_kib(b: &mut Bencher) {
+    bench_tbb(b, 8 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0016_kib(b: &mut Bencher) {
+    bench_tbb(b, 16 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0032_kib(b: &mut Bencher) {
+    bench_tbb(b, 32 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0064_kib(b: &mut Bencher) {
+    bench_tbb(b, 64 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0128_kib(b: &mut Bencher) {
+    bench_tbb(b, 128 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0256_kib(b: &mut Bencher) {
+    bench_tbb(b, 256 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_0512_kib(b: &mut Bencher) {
+    bench_tbb(b, 512 * KIB);
+}
+
+#[bench]
+#[cfg(feature = "tbb")]
+fn bench_tbb_1024_kib(b: &mut Bencher) {
+    bench_tbb(b, 1024 * KIB);
 }
 
 // This checks that update() splits up its input in increasing powers of 2, so

@@ -5,39 +5,25 @@ A command line utility for calculating
 Coreutils tools like `b2sum` or `md5sum`.
 
 ```
-b3sum 1.1.0
+Usage: b3sum [OPTIONS] [FILE]...
 
-USAGE:
-    b3sum [FLAGS] [OPTIONS] [FILE]...
+Arguments:
+  [FILE]...  Files to hash, or checkfiles to check
 
-FLAGS:
-    -c, --check       Reads BLAKE3 sums from the [file]s and checks them
-    -h, --help        Prints help information
-        --keyed       Uses the keyed mode. The secret key is read from standard
-                      input, and it must be exactly 32 raw bytes.
-        --no-mmap     Disables memory mapping. Currently this also disables
-                      multithreading.
-        --no-names    Omits filenames in the output
-        --quiet       Skips printing OK for each successfully verified file.
-                      Must be used with --check.
-        --raw         Writes raw output bytes to stdout, rather than hex.
-                      --no-names is implied. In this case, only a single
-                      input is allowed.
-    -V, --version     Prints version information
-
-OPTIONS:
-        --derive-key <CONTEXT>    Uses the key derivation mode, with the given
-                                  context string. Cannot be used with --keyed.
-    -l, --length <LEN>            The number of output bytes, prior to hex
-                                  encoding (default 32)
-        --num-threads <NUM>       The maximum number of threads to use. By
-                                  default, this is the number of logical cores.
-                                  If this flag is omitted, or if its value is 0,
-                                  RAYON_NUM_THREADS is also respected.
-
-ARGS:
-    <FILE>...    Files to hash, or checkfiles to check. When no file is given,
-                 or when - is given, read standard input.
+Options:
+      --keyed                 Use the keyed mode, reading the 32-byte key from stdin
+      --derive-key <CONTEXT>  Use the key derivation mode, with the given context string
+  -l, --length <LEN>          The number of output bytes, before hex encoding [default: 32]
+      --seek <SEEK>           The starting output byte offset, before hex encoding [default: 0]
+      --num-threads <NUM>     The maximum number of threads to use
+      --no-mmap               Disable memory mapping
+      --no-names              Omit filenames in the output
+      --raw                   Write raw output bytes to stdout, rather than hex
+      --tag                   Output BSD-style checksums: BLAKE3 ([FILE]) = [HASH]
+  -c, --check                 Read BLAKE3 sums from the [FILE]s and check them
+      --quiet                 Skip printing OK for each checked file
+  -h, --help                  Print help (see more with '--help')
+  -V, --version               Print version
 ```
 
 See also [this document about how the `--check` flag
